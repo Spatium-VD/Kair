@@ -365,7 +365,8 @@
       if (!hasTokens) return true;
 
       var rc = normalizeCityToken(r.city);
-      if (!rc) return false;
+      // Пустой город в таблице = строка не привязана к городу, показываем всем с совпавшим проектом
+      if (!rc) return true;
       for (var k = 0; k < cityTokens.length; k++) {
         if (rc === cityTokens[k]) return true;
       }
