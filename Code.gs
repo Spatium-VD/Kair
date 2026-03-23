@@ -1,12 +1,14 @@
 /**
  * Google Apps Script Web App API
  * Deploy as "web app" and call with:
- *   ?action=getEmployees|getPayments|getBonuses|getBonusProjects
+ *   ?action=getEmployees|getPayments|getBonuses|getBonusProjects|getManagers
  */
 
 // ====== Конфигурация (вставьте ваши ID) ======
 const PAYMENTS_SHEET_ID = '1uEhkppeQiRMgYC74qrlX8NK1BwlBqOPKYVrjnG9bhlA';
 const PAYMENTS_SHEET_NAME = 'ФОТ офис';
+/** Лист с менеджерами для входа (колонки как в бывшем managers.csv). Та же книга, что и ФОТ. */
+const MANAGERS_SHEET_NAME = 'managers';
 
 const BONUSES_SHEET_ID = '1md_IvpL74RdZT-bGnXmIwEZJOacCphgpXLNMmtfvnrI';
 // Внутри второй таблицы используйте лист с бонусами/корректировками.
@@ -22,6 +24,7 @@ function doGet(e) {
     if (action === 'getPayments') return jsonResponse(getPayments());
     if (action === 'getBonuses') return jsonResponse(getBonuses());
     if (action === 'getBonusProjects') return jsonResponse(getBonusProjects());
+    if (action === 'getManagers') return jsonResponse(getManagers());
     return jsonResponse({ error: 'Unknown action: ' + action });
   } catch (err) {
     return jsonResponse({ error: String(err && err.message ? err.message : err) });
@@ -131,6 +134,64 @@ function getEmployeesFromSheet(sheetId, sheetName) {
 }
 
 // ====== Sheets reading ======
+/**
+ * Менеджеры: лист managers в таблице выплат (ФОТ).
+ * Строка 1 — заголовки: fio_fot, name_bonus, projects, города, active, password (как в CSV).
+ */
+function getManagers() {
+  assertConfigured_();
+  const cacheKey = ['managers', PAYMENTS_SHEET_ID, MANAGERS_SHEET_NAME].join('|');
+  const cached = readCacheJson_(cacheKey);
+  if (cached) return cached;
+
+  const ss = SpreadsheetApp.openById(PAYMENTS_SHEET_ID);
+  const sheet = ss.getSheetByName(MANAGERS_SHEET_NAME);
+  if (!sheet) {
+    throw new Error('Лист «' + MANAGERS_SHEET_NAME + '» не найден в таблице ФОТ. Создайте лист и скопируйте колонки из managers.csv.');
+  }
+
+  const values = sheet.getDataRange().getValues();
+  if (!values || values.length < 2) {
+    writeCacheJson_(cacheKey, []);
+    return [];
+  }
+
+  const header = values[0];
+  const keys = normalizeHeaders(header);
+  const out = [];
+
+  for (let r = 1; r < values.length; r++) {
+    const row = values[r];
+    const obj = {};
+    let hasFio = false;
+
+    for (let c = 0; c < keys.length; c++) {
+      const key = keys[c];
+      if (!key) continue;
+      let v = row[c];
+      if (v === '' || v === null || typeof v === 'undefined') {
+        obj[key] = null;
+        continue;
+      }
+      if (typeof v === 'string') v = v.trim();
+      obj[key] = v;
+      const kn = String(key).trim().toLowerCase();
+      if ((kn === 'fio_fot' || kn === 'фио_фот' || kn === 'fio fot') && v) hasFio = true;
+    }
+
+    if (!hasFio) continue;
+
+    const act = obj.active;
+    const actStr = act === null || act === undefined ? '' : String(act).trim().toLowerCase();
+    if (actStr === 'нет' || actStr === 'no' || actStr === 'false' || actStr === '0') continue;
+
+    out.push(obj);
+  }
+
+  writeCacheJson_(cacheKey, out);
+  return out;
+}
+
 function getSheetData(sheetId, sheetNameOrNull) {
   const ss = SpreadsheetApp.openById(sheetId);
   const sheet = sheetNameOrNull ? ss.getSheetByName(sheetNameOrNull) : null;

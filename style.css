@@ -262,6 +262,59 @@ h1, h2, h3, .section-title, .brand-name {
 
 /* ── Filters ── */
 
+.filter-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.15rem;
+}
+
+.filter-card-title {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  margin-bottom: 0.65rem;
+  color: var(--color-text);
+}
+
+.filter-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.btn-filter-preset {
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-filter-preset:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.btn-filter-preset.active {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.btn-filter-preset.active:hover {
+  color: #fff;
+  filter: brightness(1.05);
+}
+
 .filters {
   display: flex;
   gap: 1rem;
@@ -269,8 +322,25 @@ h1, h2, h3, .section-title, .brand-name {
   flex-wrap: wrap;
 }
 
-.filters > div {
+.filters > div,
+.filter-date-field {
   min-width: 140px;
+}
+
+.filters-custom {
+  align-items: flex-end;
+}
+
+.filter-date-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+  align-items: center;
+}
+
+.filter-date-actions .btn {
+  white-space: nowrap;
 }
 
 /* ── Section cards ── */
@@ -426,6 +496,25 @@ tbody tr:hover {
   .filters {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .filter-date-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-date-actions .btn {
+    width: 100%;
+  }
+
+  .filter-presets {
+    gap: 0.35rem;
+  }
+
+  .btn-filter-preset {
+    flex: 1 1 auto;
+    min-width: calc(50% - 0.25rem);
+    text-align: center;
   }
 
   .card-app {

@@ -2,6 +2,9 @@
 *.xls
 ~$*.xlsx
 *.csv
+!managers.example.csv
+# Старый архив мог содержать managers.csv с PIN — не коммитить
+moya-zarplata-hosting.zip
 *.tmp
 *.log
 .DS_Store

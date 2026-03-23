@@ -145,63 +145,7 @@
     return (surname + ' ' + first + ' ' + second).replace(/\s+/g, ' ').trim();
   }
 
-  // ── CSV parsing ──
-
-  function parseCSV(text) {
-    var lines = text.split('\n');
-    if (lines.length < 2) return [];
-    var headerLine = lines[0].replace(/^\uFEFF/, '');
-    var headers = parseCSVLine(headerLine);
-    var rows = [];
-    for (var i = 1; i < lines.length; i++) {
-      var line = lines[i].trim();
-      if (!line) continue;
-      var vals = parseCSVLine(line);
-      var obj = {};
-      for (var j = 0; j < headers.length; j++) {
-        obj[headers[j].trim()] = (vals[j] || '').trim();
-      }
-      rows.push(obj);
-    }
-    return rows;
-  }
-
-  function parseCSVLine(line) {
-    var result = [];
-    var current = '';
-    var inQuotes = false;
-    for (var i = 0; i < line.length; i++) {
-      var ch = line[i];
-      if (inQuotes) {
-        if (ch === '"') {
-          if (i + 1 < line.length && line[i + 1] === '"') {
-            current += '"';
-            i++;
-          } else {
-            inQuotes = false;
-          }
-        } else {
-          current += ch;
-        }
-      } else {
-        if (ch === '"') {
-          inQuotes = true;
-        } else if (ch === ',') {
-          result.push(current);
-          current = '';
-        } else {
-          current += ch;
-        }
-      }
-    }
-    result.push(current);
-    return result;
-  }
-
-  /**
-   * @param {{ force?: boolean }} [opts] — force: заново скачать CSV (при входе, чтобы подтянуть города/проекты).
-   */
-  /** Города из строки managers: колонка «города» / cities; учёт лишних пробелов в заголовке CSV. */
+  /** Города из строки managers: колонка «города» / cities; учёт лишних пробелов в заголовке. */
   function getRawCitiesCell(row) {
     if (!row || typeof row !== 'object') return '';
     var direct =
@@ -222,14 +166,37 @@
     return '';
   }
 
+  function managerFio(row) {
+    if (!row) return '';
+    var v = row.fio_fot;
+    if (v === null || v === undefined) return '';
+    return String(v).trim();
+  }
+
+  function managerPin(row) {
+    if (!row) return '';
+    var v = row.password;
+    if (v === null || v === undefined) return '';
+    return String(v).trim();
+  }
+
+  /**
+   * Список менеджеров с бэкенда (лист «managers» в Google Таблице ФОТ).
+   * @param {{ force?: boolean }} [opts] — force: сбросить кэш в памяти и заново запросить API.
+   */
   async function loadManagers(opts) {
     var force = opts && opts.force;
     if (state.managers && !force) return state.managers;
     if (force) state.managers = null;
-    var url = './managers.csv' + (force ? '?t=' + Date.now() : '');
-    var res = await fetch(url, force ? { cache: 'no-store' } : {});
-    var text = await res.text();
-    state.managers = parseCSV(text);
+    var url = window.APPS_SCRIPT_URL || '';
+    if (!url || /PASTE_YOUR|YOUR_APPS_SCRIPT/i.test(url)) {
+      throw new Error('В config.js укажите URL веб-приложения Google Apps Script.');
+    }
+    var data = await apiGet('getManagers');
+    if (!Array.isArray(data)) {
+      throw new Error('Ответ getManagers не массив. Задеплойте обновлённый Code.gs с action getManagers.');
+    }
+    state.managers = data;
     return state.managers;
   }
 
@@ -294,7 +261,7 @@
       var match = null;
       for (var i = 0; i < managers.length; i++) {
         var m = managers[i];
-        if (nameToSignature(m.fio_fot) === userSig && m.password === pin) {
+        if (nameToSignature(managerFio(m)) === userSig && managerPin(m) === pin) {
           match = m;
           break;
         }
@@ -303,12 +270,22 @@
         setError('errorBox', 'Неверное ФИО или PIN-код');
         return;
       }
-      var projects = match.projects ? match.projects.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
+      var projRaw = match.projects;
+      var projects =
+        projRaw !== null && projRaw !== undefined && String(projRaw).trim() !== ''
+          ? String(projRaw)
+              .split(',')
+              .map(function (s) {
+                return s.trim();
+              })
+              .filter(Boolean)
+          : [];
       var rawCities = getRawCitiesCell(match);
       var cs = parseCitySettings(rawCities);
+      var nb = match.name_bonus;
       setSessionUser({
-        fioFot: match.fio_fot,
-        nameBonus: match.name_bonus,
+        fioFot: managerFio(match),
+        nameBonus: nb === null || nb === undefined ? '' : String(nb).trim(),
         projects: projects,
         cities: cs.tokens,
         cityAllGlobally: cs.allCities,
@@ -316,6 +293,13 @@
         active: match.active
       });
       window.location.href = './dashboard.html';
+    } catch (err) {
+      setError(
+        'errorBox',
+        err && err.message
+          ? err.message
+          : 'Не удалось загрузить список менеджеров. Проверьте интернет, URL в config.js и что в Apps Script задеплоен Code.gs с getManagers.'
+      );
     } finally {
       btn.disabled = false;
       spinner.style.display = 'none';
@@ -397,6 +381,115 @@
     renderBonusProjects(fromISO, toISO);
   }
 
+  /** Локальная дата → YYYY-MM-DD (без сдвига UTC). */
+  function dateToISO(d) {
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1);
+    if (m.length === 1) m = '0' + m;
+    var day = String(d.getDate());
+    if (day.length === 1) day = '0' + day;
+    return y + '-' + m + '-' + day;
+  }
+
+  function clearPresetButtons() {
+    var wrap = $('datePresets');
+    if (!wrap) return;
+    var btns = wrap.querySelectorAll('.btn-filter-preset');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].classList.remove('active');
+    }
+  }
+
+  function activatePresetButton(key) {
+    clearPresetButtons();
+    var wrap = $('datePresets');
+    if (!wrap) return;
+    var el = wrap.querySelector('[data-preset="' + key + '"]');
+    if (el) el.classList.add('active');
+  }
+
+  function applyDatePreset(key) {
+    var now = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (key === 'all') {
+      $('dateFrom').value = '';
+      $('dateTo').value = '';
+      activatePresetButton('all');
+      applyFiltersAndRender();
+      return;
+    }
+
+    var fromD;
+    var toD;
+
+    if (key === 'thisMonth') {
+      fromD = new Date(today.getFullYear(), today.getMonth(), 1);
+      toD = today;
+    } else if (key === 'lastMonth') {
+      fromD = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      toD = new Date(today.getFullYear(), today.getMonth(), 0);
+    } else if (key === 'thisQuarter') {
+      var q = Math.floor(today.getMonth() / 3);
+      fromD = new Date(today.getFullYear(), q * 3, 1);
+      var endQ = new Date(today.getFullYear(), q * 3 + 3, 0);
+      toD = today.getTime() < endQ.getTime() ? today : endQ;
+    } else if (key === 'last3Months') {
+      fromD = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+      toD = today;
+    } else if (key === 'thisYear') {
+      fromD = new Date(today.getFullYear(), 0, 1);
+      toD = today;
+    } else {
+      return;
+    }
+
+    $('dateFrom').value = dateToISO(fromD);
+    $('dateTo').value = dateToISO(toD);
+    activatePresetButton(key);
+    applyFiltersAndRender();
+  }
+
+  function onDateFieldUserChange() {
+    clearPresetButtons();
+    applyFiltersAndRender();
+  }
+
+  function wireDateFilters() {
+    var presetsWrap = $('datePresets');
+    if (presetsWrap) {
+      presetsWrap.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-preset]');
+        if (!btn) return;
+        e.preventDefault();
+        applyDatePreset(btn.getAttribute('data-preset'));
+      });
+    }
+
+    var df = $('dateFrom');
+    var dt = $('dateTo');
+    if (df) df.addEventListener('change', onDateFieldUserChange);
+    if (dt) dt.addEventListener('change', onDateFieldUserChange);
+
+    var applyBtn = $('applyDatesBtn');
+    if (applyBtn) {
+      applyBtn.addEventListener('click', function () {
+        clearPresetButtons();
+        applyFiltersAndRender();
+      });
+    }
+
+    var resetBtn = $('resetDatesBtn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function () {
+        $('dateFrom').value = '';
+        $('dateTo').value = '';
+        activatePresetButton('all');
+        applyFiltersAndRender();
+      });
+    }
+  }
+
   function renderFOT(fromISO, toISO) {
     var allUser = getUserPayments();
     var records = allUser.filter(function(r) {
@@ -412,10 +505,10 @@
       var emptyMsg = 'Нет данных';
       if (allUser.length && (fromISO || toISO)) {
         emptyMsg =
-          'За выбранный период ничего не попало. Очистите даты или нажмите «Показать за всё время» — часто браузер подставляет лишнее в поле «С».';
+          'За выбранный период ничего не попало. Нажмите «Всё время» или «Сбросить даты» — часто в поле «С даты» браузер подставляет лишнее.';
       } else if (!allUser.length) {
         emptyMsg =
-          'В ФОТ не найдено строк по вашему ФИО. Сверьте написание с колонкой «Сотрудник» в Google Таблице и с полем fio_fot в managers.csv.';
+          'В ФОТ не найдено строк по вашему ФИО. Сверьте написание с колонкой «Сотрудник» в Google Таблице и с колонкой fio_fot на листе «managers».';
       }
       tbody.innerHTML =
         '<tr><td colspan="4" class="text-muted text-center py-3">' + escapeHtml(emptyMsg) + '</td></tr>';
@@ -473,10 +566,10 @@
           'В выбранном периоде есть только месяцы до июня 2025 — по ним детализация премий по проектам не велась. Расширьте период на июнь 2025 и позже.';
       } else if (allB.length && (fromISO || toISO)) {
         msg =
-          'За выбранный период нет строк по проектам. Нажмите «Показать за всё время» или расширьте даты.';
+          'За выбранный период нет строк по проектам. Нажмите «Всё время» / «Сбросить даты» или расширьте диапазон.';
       } else if (!allB.length && user.projects && user.projects.length) {
         msg =
-          'Нет совпадений по проектам/городам из managers.csv и таблицы «Премия». Проверьте названия и колонку «города».';
+          'Нет совпадений по проектам/городам из листа «managers» и таблицы «Премия». Проверьте названия и колонку «города».';
       }
       var banner =
         '<div class="bonus-info-banner"><strong>Детализация с июня 2025.</strong> Блок «Премия по проектам» заполняется с периода <strong>июнь 2025</strong> (лист jun-25 и новее). Раньше детализация по проектам не велась.</div>';
@@ -609,23 +702,15 @@
     var userPayments = getUserPayments();
     var userBonuses = getUserBonusProjects();
     setDefaultDates(userPayments, userBonuses);
+    clearPresetButtons();
 
     if (hint && userPayments.length) {
       hint.style.display = 'block';
       hint.textContent =
-        'Период подставлен по вашим данным. Если таблица пустая — нажмите «Показать за всё время» или проверьте поля «С» и «По».';
+        'Период подставлен по первой и последней дате в ваших данных. Быстрые кнопки — «Этот месяц», «Прошлый месяц» и др. Сброс — «Всё время».';
     }
 
-    $('dateFrom').addEventListener('change', applyFiltersAndRender);
-    $('dateTo').addEventListener('change', applyFiltersAndRender);
-    var resetBtn = $('resetDatesBtn');
-    if (resetBtn) {
-      resetBtn.addEventListener('click', function () {
-        $('dateFrom').value = '';
-        $('dateTo').value = '';
-        applyFiltersAndRender();
-      });
-    }
+    wireDateFilters();
 
     applyFiltersAndRender();
   }
