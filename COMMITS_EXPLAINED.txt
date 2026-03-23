@@ -54,7 +54,7 @@
    Зачем:
    - В GitHub остаётся минимум: фронт, Code.gs, примеры, README, COMMITS_EXPLAINED, logo.
 
-8) (см. git log) - feat: GitHub Pages — config.js из секрета APPS_SCRIPT_URL
+8) 82aa43b - feat: GitHub Pages — config.js из секрета APPS_SCRIPT_URL
    Что сделано:
    - .github/workflows/pages.yml: сборка _site, config.js из secrets, деплой Pages.
    - README: раздел про GitHub Pages и секрет.
