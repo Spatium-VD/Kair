@@ -11,5 +11,3 @@ moya-zarplata-hosting.zip
 Thumbs.db
 .env
 .env.*
-# URL веб-приложения — не светить в публичном репозитории
-config.js

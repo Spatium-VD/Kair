@@ -61,5 +61,13 @@
    Зачем:
    - На Pages не было config.js (он в .gitignore); без Actions URL некуда подставить.
 
-Примечание: новые коммиты дописывайте по номеру (9), (10)…
+9) (см. git log) - revert: config.js в репо, GitHub Actions Pages убран
+   Что сделано:
+   - config.js с URL Web App снова в Git; .gitignore без исключения config.js.
+   - Удалён .github/workflows/pages.yml — Pages: Deploy from branch main.
+   - README упрощён (без секретов Actions).
+   Зачем:
+   - Проще: ссылка на Apps Script видна всем, как захотел владелец.
+
+Примечание: новые коммиты дописывайте по номеру (10), (11)…
 

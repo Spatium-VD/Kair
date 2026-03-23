@@ -16,12 +16,11 @@
 Если у вас листы называются иначе, измените `PAYMENTS_SHEET_NAME`, `MANAGERS_SHEET_NAME`, `BONUSES_SHEET_NAME` в `Code.gs`
 (имена листов в коде можно оставить; при необходимости вынесите в Script properties по аналогии с ID).
 
-## Публичный GitHub: что не светить
+## Публичный репозиторий
 
-- **`config.js`** с URL веб-приложения — **не коммитить** (в репозитории есть только `config.example.js`, локально копируете в `config.js`).
-- **ID таблиц** — не держать в `Code.gs` в Git: задаются в **Script properties** в Google (см. §3).
-- **`managers.csv`** — по-прежнему не в репо; PIN только в таблице, лист `managers`.
-- **История Git:** если ID или URL уже попадали в старые коммиты, после открытия репозитория они всё ещё видны в истории. Варианты: новый репозиторий без старой истории, или очистка истории (`git filter-repo` / BFG), плюс при желании **новый деплой** Web App (новый URL) и проверка прав доступа к таблицам.
+- **`managers.csv`** в Git не нужен: PIN и менеджеры в Google Таблице (лист `managers`).
+- **ID таблиц** в `Code.gs` не хранятся — задаются в **Script properties** в Google (см. §3).
+- **`config.js`** с URL Web App лежит в репозитории — при смене деплоя Apps Script поправьте URL в этом файле.
 
 ## 2) Создайте проект Apps Script
 
@@ -77,10 +76,9 @@ ID берётся из URL таблицы:
 
 ## 6) URL веб-приложения на фронте
 
-1. Скопируйте **`config.example.js`** в файл **`config.js`** (в корне сайта, рядом с `index.html`).
-2. В `config.js` подставьте URL из шага 5 в `window.APPS_SCRIPT_URL`.
+В корне сайта файл **`config.js`**: в `window.APPS_SCRIPT_URL` укажите URL из шага 5. Файл **в репозитории** — для GitHub Pages достаточно **Deploy from branch** (`main` / root), секреты не нужны.
 
-Файл **`config.js` не коммитится** в Git (см. `.gitignore`) — так можно безопасно держать репозиторий публичным.
+Шаблон без вашего URL: **`config.example.js`**.
 
 ## 7) Запустите фронтенд локально
 
@@ -105,25 +103,10 @@ python3 -m http.server 8080
 - проверьте `PAYMENTS_SHEET_NAME` / `BONUSES_SHEET_NAME` в `Code.gs`
 - уточните заголовки колонок (скрипт ищет ключи по смысловым словам: `ФИО`, `Сотрудник`, `Год`, `Месяц`, `Сумма`, `Статус`, `Комментарий`).
 
-## Статический хостинг (что заливать)
+## Статический хостинг / GitHub Pages
 
-В одну папку сайта: `index.html`, `dashboard.html`, `script.js`, `style.css`, `logo.png`, `favicon.ico`, плюс **`config.js`** (из `config.example.js`, URL Web App; в Git не коммитится). Список менеджеров — в Google Таблице, лист `managers`. Нужны **HTTPS** и доступ в интернет (Bootstrap с CDN).
-
-### GitHub Pages (без `config.js` в репозитории)
-
-Если источник Pages — **ветка `main`**, файла `config.js` там нет → сайт покажет ошибку про URL.
-
-Сделайте так:
-
-1. **Settings** → **Secrets and variables** → **Actions** → **New repository secret**  
-   - Имя: **`APPS_SCRIPT_URL`**  
-   - Значение: полный URL Web App (как в `config.example.js`, строка `https://script.google.com/macros/s/.../exec`).
-
-2. **Settings** → **Pages** → **Build and deployment** → источник: **GitHub Actions** (не «Deploy from a branch»).
-
-3. Запушьте в `main` воркфлоу **`.github/workflows/pages.yml`** (уже в проекте). После успешного прогона сайт получит сгенерированный **`config.js`** внутри артефакта Pages.
-
-Если сборка падает с ошибкой про пустой секрет — проверьте, что `APPS_SCRIPT_URL` создан именно для **Actions** (не Dependabot).
+В одну папку (или корень ветки Pages): `index.html`, `dashboard.html`, `script.js`, `style.css`, `logo.png`, `favicon.ico`, **`config.js`**.  
+**GitHub Pages:** Settings → Pages → **Deploy from a branch** → `main` / `/ (root)`.
 
 ## CORS (важно для `fetch`)
 
