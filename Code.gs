@@ -1,7 +1,7 @@
 /**
  * Google Apps Script Web App API
  * Deploy as "web app" and call with:
- *   ?action=getEmployees|getPayments|getBonuses
+ *   ?action=getEmployees|getPayments|getBonuses|getBonusProjects
  */
 
 // ====== Конфигурация (вставьте ваши ID) ======
@@ -21,6 +21,7 @@ function doGet(e) {
     if (action === 'getEmployees') return jsonResponse(getEmployees());
     if (action === 'getPayments') return jsonResponse(getPayments());
     if (action === 'getBonuses') return jsonResponse(getBonuses());
+    if (action === 'getBonusProjects') return jsonResponse(getBonusProjects());
     return jsonResponse({ error: 'Unknown action: ' + action });
   } catch (err) {
     return jsonResponse({ error: String(err && err.message ? err.message : err) });
@@ -333,6 +334,60 @@ function getBonuses() {
       // ignore: sheet doesn't match expected format
     }
   }
+  writeCacheJson_(cacheKey, all);
+  return all;
+}
+
+// ====== Bonus Projects (monthly sheets from Премия) ======
+function getBonusProjects() {
+  assertConfigured_();
+  var cacheKey = 'bonusProjects|' + BONUSES_SHEET_ID;
+  var cached = readCacheJson_(cacheKey);
+  if (cached) return cached;
+
+  var ss = SpreadsheetApp.openById(BONUSES_SHEET_ID);
+  var sheets = ss.getSheets();
+  var skipSheets = {'Сырье':1, 'ФОТ':1, 'Прочие расходы':1, 'Рекрутеры':1};
+  var skipE = {'Мск':1, 'Нск':1, 'Крс':1, 'Екб':1, 'Город':1, 'Менеджер':1, '#N/A':1, '':1};
+
+  var all = [];
+  for (var i = 0; i < sheets.length; i++) {
+    var sheetName = sheets[i].getName();
+    if (skipSheets[sheetName]) continue;
+
+    var values = sheets[i].getDataRange().getValues();
+    if (values.length < 9) continue;
+
+    var month = parseInt(values[0][4], 10) || 0;
+    var year = parseInt(values[0][5], 10) || 0;
+    if (!month || !year) continue;
+    var mm = month < 10 ? '0' + month : String(month);
+    var date = year + '-' + mm + '-01';
+
+    for (var r = 8; r < Math.min(values.length, 150); r++) {
+      var managerRaw = values[r][3];
+      var projectRaw = values[r][4];
+      if (!projectRaw) continue;
+      var project = String(projectRaw).trim();
+      if (!project || skipE[project]) continue;
+      if (/^[\d.,\s\-]+$/.test(project)) continue;
+
+      var manager = managerRaw ? String(managerRaw).trim() : '';
+      if (manager === 'Оклад' || manager === 'Аренда офиса') break;
+
+      all.push({
+        date: date,
+        period: sheetName,
+        manager: manager,
+        project: project,
+        city: values[r][5] ? String(values[r][5]).trim() : '',
+        fot: parseFloatSafe(values[r][6]) || 0,
+        dividends: parseFloatSafe(values[r][7]) || 0,
+        bonusManager: parseFloatSafe(values[r][17]) || 0
+      });
+    }
+  }
+
   writeCacheJson_(cacheKey, all);
   return all;
 }
