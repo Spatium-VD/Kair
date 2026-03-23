@@ -109,6 +109,22 @@ python3 -m http.server 8080
 
 В одну папку сайта: `index.html`, `dashboard.html`, `script.js`, `style.css`, `logo.png`, `favicon.ico`, плюс **`config.js`** (из `config.example.js`, URL Web App; в Git не коммитится). Список менеджеров — в Google Таблице, лист `managers`. Нужны **HTTPS** и доступ в интернет (Bootstrap с CDN).
 
+### GitHub Pages (без `config.js` в репозитории)
+
+Если источник Pages — **ветка `main`**, файла `config.js` там нет → сайт покажет ошибку про URL.
+
+Сделайте так:
+
+1. **Settings** → **Secrets and variables** → **Actions** → **New repository secret**  
+   - Имя: **`APPS_SCRIPT_URL`**  
+   - Значение: полный URL Web App (как в `config.example.js`, строка `https://script.google.com/macros/s/.../exec`).
+
+2. **Settings** → **Pages** → **Build and deployment** → источник: **GitHub Actions** (не «Deploy from a branch»).
+
+3. Запушьте в `main` воркфлоу **`.github/workflows/pages.yml`** (уже в проекте). После успешного прогона сайт получит сгенерированный **`config.js`** внутри артефакта Pages.
+
+Если сборка падает с ошибкой про пустой секрет — проверьте, что `APPS_SCRIPT_URL` создан именно для **Actions** (не Dependabot).
+
 ## CORS (важно для `fetch`)
 
 Браузер обращается к вашему Apps Script Web App через `fetch`.
