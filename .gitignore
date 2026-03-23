@@ -1,5 +1,6 @@
 *.xlsx
 *.xls
+~$*.xlsx
 *.csv
 *.tmp
 *.log
