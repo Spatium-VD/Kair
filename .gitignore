@@ -1,0 +1,9 @@
+*.xlsx
+*.xls
+*.csv
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+.env
+.env.*
