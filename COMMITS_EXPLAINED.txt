@@ -61,7 +61,7 @@
    Зачем:
    - На Pages не было config.js (он в .gitignore); без Actions URL некуда подставить.
 
-9) (см. git log) - revert: config.js в репо, GitHub Actions Pages убран
+9) e6e28f6 - revert: config.js в репо, GitHub Actions Pages убран
    Что сделано:
    - config.js с URL Web App снова в Git; .gitignore без исключения config.js.
    - Удалён .github/workflows/pages.yml — Pages: Deploy from branch main.
