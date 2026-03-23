@@ -105,6 +105,10 @@ python3 -m http.server 8080
 - проверьте `PAYMENTS_SHEET_NAME` / `BONUSES_SHEET_NAME` в `Code.gs`
 - уточните заголовки колонок (скрипт ищет ключи по смысловым словам: `ФИО`, `Сотрудник`, `Год`, `Месяц`, `Сумма`, `Статус`, `Комментарий`).
 
+## Статический хостинг (что заливать)
+
+В одну папку сайта: `index.html`, `dashboard.html`, `script.js`, `style.css`, `logo.png`, `favicon.ico`, плюс **`config.js`** (из `config.example.js`, URL Web App; в Git не коммитится). Список менеджеров — в Google Таблице, лист `managers`. Нужны **HTTPS** и доступ в интернет (Bootstrap с CDN).
+
 ## CORS (важно для `fetch`)
 
 Браузер обращается к вашему Apps Script Web App через `fetch`.
