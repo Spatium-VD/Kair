@@ -14,7 +14,14 @@
    - В коде по умолчанию стоит `BONUSES_SHEET_NAME = 'AUTO'` (поиск по всем листам).
 
 Если у вас листы называются иначе, измените `PAYMENTS_SHEET_NAME`, `MANAGERS_SHEET_NAME`, `BONUSES_SHEET_NAME` в `Code.gs`
-или задайте их через Script Properties.
+(имена листов в коде можно оставить; при необходимости вынесите в Script properties по аналогии с ID).
+
+## Публичный GitHub: что не светить
+
+- **`config.js`** с URL веб-приложения — **не коммитить** (в репозитории есть только `config.example.js`, локально копируете в `config.js`).
+- **ID таблиц** — не держать в `Code.gs` в Git: задаются в **Script properties** в Google (см. §3).
+- **`managers.csv`** — по-прежнему не в репо; PIN только в таблице, лист `managers`.
+- **История Git:** если ID или URL уже попадали в старые коммиты, после открытия репозитория они всё ещё видны в истории. Варианты: новый репозиторий без старой истории, или очистка истории (`git filter-repo` / BFG), плюс при желании **новый деплой** Web App (новый URL) и проверка прав доступа к таблицам.
 
 ## 2) Создайте проект Apps Script
 
@@ -22,24 +29,19 @@
 2. Нажмите **Создать проект**.
 3. Внутри проекта откройте файл `Code.gs` (или создайте новый файл) и замените его содержимое на код из вашего локального `Code.gs`.
 
-## 3) Вставьте ID таблиц в `Code.gs`
+## 3) ID таблиц — только в Script properties (Google)
 
-Откройте локально `Code.gs` и замените:
+В **Google Apps Script** откройте **Проект** → **Параметры проекта** (шестерёнка) → вкладка **Свойства сценария** → **Добавить свойство**:
 
-- `PAYMENTS_SHEET_ID` на ID таблицы выплат
-- `BONUSES_SHEET_ID` на ID таблицы бонусов
+| Свойство | Значение |
+|----------|----------|
+| `PAYMENTS_SHEET_ID` | ID книги с ФОТ и листом `managers` |
+| `BONUSES_SHEET_ID` | ID книги с премиями |
 
-Также можно не хранить ID в коде, а задать Script Properties в Apps Script:
-- `PAYMENTS_SHEET_ID`
-- `PAYMENTS_SHEET_NAME`
-- `BONUSES_SHEET_ID`
-- `BONUSES_SHEET_NAME`
+ID берётся из URL таблицы:  
+`https://docs.google.com/spreadsheets/d/СПИСОК_ID/edit...` — часть между `/d/` и `/edit`.
 
-ID таблицы находится в URL, например:
-
-`https://docs.google.com/spreadsheets/d/СПИСОК_ID/edit...`
-
-Подставьте часть между `/d/` и `/edit`.
+После сохранения свойств **сохраните проект** и заново **задеплойте** Web App (при необходимости — новая версия).
 
 ## 4) Лист `managers` в таблице ФОТ
 
@@ -73,13 +75,12 @@ ID таблицы находится в URL, например:
 5. Скопируйте URL вида:
    `https://script.google.com/macros/s/<SCRIPT_ID>/exec`
 
-## 6) Вставьте URL в `config.js`
+## 6) URL веб-приложения на фронте
 
-Откройте локально `config.js` и замените:
+1. Скопируйте **`config.example.js`** в файл **`config.js`** (в корне сайта, рядом с `index.html`).
+2. В `config.js` подставьте URL из шага 5 в `window.APPS_SCRIPT_URL`.
 
-`window.APPS_SCRIPT_URL = 'PASTE_YOUR_APPS_SCRIPT_URL_HERE';`
-
-на ваш URL из шага 5.
+Файл **`config.js` не коммитится** в Git (см. `.gitignore`) — так можно безопасно держать репозиторий публичным.
 
 ## 7) Запустите фронтенд локально
 

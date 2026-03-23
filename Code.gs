@@ -4,13 +4,23 @@
  *   ?action=getEmployees|getPayments|getBonuses|getBonusProjects|getManagers
  */
 
-// ====== Конфигурация (вставьте ваши ID) ======
-const PAYMENTS_SHEET_ID = '1uEhkppeQiRMgYC74qrlX8NK1BwlBqOPKYVrjnG9bhlA';
+// ====== Конфигурация ======
+// ID таблиц Google НЕ храните в публичном репозитории: задайте в Apps Script:
+// Проект → Параметры проекта → Свойства сценария (Script properties):
+//   PAYMENTS_SHEET_ID  — ID книги с ФОТ и листом managers
+//   BONUSES_SHEET_ID   — ID книги с премиями
+function readSheetIdFromProperties_(propKey) {
+  const raw = PropertiesService.getScriptProperties().getProperty(propKey);
+  if (raw != null && String(raw).trim() !== '') return String(raw).trim();
+  return '';
+}
+
+const PAYMENTS_SHEET_ID = readSheetIdFromProperties_('PAYMENTS_SHEET_ID');
+const BONUSES_SHEET_ID = readSheetIdFromProperties_('BONUSES_SHEET_ID');
+
 const PAYMENTS_SHEET_NAME = 'ФОТ офис';
 /** Лист с менеджерами для входа (колонки как в бывшем managers.csv). Та же книга, что и ФОТ. */
 const MANAGERS_SHEET_NAME = 'managers';
-
-const BONUSES_SHEET_ID = '1md_IvpL74RdZT-bGnXmIwEZJOacCphgpXLNMmtfvnrI';
 // Внутри второй таблицы используйте лист с бонусами/корректировками.
 // Если поставить 'AUTO' — скрипт попытается найти листы с нужными колонками.
 const BONUSES_SHEET_NAME = 'AUTO';
@@ -32,11 +42,15 @@ function doGet(e) {
 }
 
 function assertConfigured_() {
-  if (PAYMENTS_SHEET_ID === 'ID_ТАБЛИЦЫ_ВЫПЛАТ') {
-    throw new Error('Не задан PAYMENTS_SHEET_ID. Укажите ID таблицы выплат в Code.gs.');
+  if (!PAYMENTS_SHEET_ID) {
+    throw new Error(
+      'Не задан PAYMENTS_SHEET_ID. В Google Apps Script: Проект → Параметры проекта → Свойства сценария — добавьте свойство PAYMENTS_SHEET_ID (ID таблицы ФОТ из URL /d/.../edit).'
+    );
   }
-  if (BONUSES_SHEET_ID === 'ID_ТАБЛИЦЫ_БОНУСОВ') {
-    throw new Error('Не задан BONUSES_SHEET_ID. Укажите ID таблицы бонусов в Code.gs.');
+  if (!BONUSES_SHEET_ID) {
+    throw new Error(
+      'Не задан BONUSES_SHEET_ID. В свойствах сценария добавьте BONUSES_SHEET_ID (ID таблицы премий).'
+    );
   }
 }
 

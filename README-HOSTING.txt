@@ -3,7 +3,8 @@
 
 Что залить на хостинг (в корень сайта, одна папка):
   index.html, dashboard.html
-  script.js, style.css, config.js
+  script.js, style.css
+  config.js  (создайте из config.example.js и вставьте URL Web App — в GitHub не коммитить)
   logo.png
   Копия-Креатив-без-названия-_2_.ico  (фавикон)
 
