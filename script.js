@@ -333,11 +333,20 @@
 
   function getUserBonusProjects() {
     var user = state.currentUser;
-    if (!user || !state.allBonusProjects || !user.projects.length) return [];
+    if (!user || !state.allBonusProjects) return [];
+
+    // Первичный фильтр: совпадение полного ФИО (fio_fot) с полем manager в таблице Премии
+    var userSig = nameToSignature(user.fioFot);
+
+    // Вторичный фильтр: projects в managers — белый список проектов (если пусто — показываем все)
+    var hasProjectFilter = user.projects && user.projects.length > 0;
     var projectSet = {};
-    for (var i = 0; i < user.projects.length; i++) {
-      projectSet[user.projects[i].toLowerCase()] = true;
+    if (hasProjectFilter) {
+      for (var i = 0; i < user.projects.length; i++) {
+        projectSet[user.projects[i].toLowerCase()] = true;
+      }
     }
+
     var cityTokens = [];
     if (user.cities && user.cities.length) {
       for (var c = 0; c < user.cities.length; c++) {
@@ -351,8 +360,15 @@
 
     return state.allBonusProjects.filter(function (r) {
       if (!r || !r.project) return false;
-      if (projectSet[r.project.toLowerCase()] !== true) return false;
 
+      // Первичный: ФИО менеджера должно совпадать
+      var rSig = nameToSignature(r.manager || '');
+      if (!rSig || rSig !== userSig) return false;
+
+      // Вторичный: фильтр по проектам (если задан в managers)
+      if (hasProjectFilter && projectSet[r.project.toLowerCase()] !== true) return false;
+
+      // Фильтр по городу
       if (allGlob) return true;
 
       var isSam = projectIsSamokat(r.project);
@@ -365,7 +381,7 @@
       if (!hasTokens) return true;
 
       var rc = normalizeCityToken(r.city);
-      // Пустой город в таблице = строка не привязана к городу, показываем всем с совпавшим проектом
+      // Пустой город в таблице = строка не привязана к городу
       if (!rc) return true;
       for (var k = 0; k < cityTokens.length; k++) {
         if (rc === cityTokens[k]) return true;
@@ -537,7 +553,7 @@
     var content = $('bonusContent');
     var user = state.currentUser;
 
-    if (!user || !user.projects.length) {
+    if (!user) {
       section.style.display = 'none';
       return;
     }
@@ -684,12 +700,7 @@
 
     $('dataSpinner').style.display = 'block';
     try {
-      var promises = [apiGet('getPayments')];
-      if (user.projects && user.projects.length) {
-        promises.push(apiGet('getBonusProjects'));
-      } else {
-        promises.push(Promise.resolve([]));
-      }
+      var promises = [apiGet('getPayments'), apiGet('getBonusProjects')];
       var results = await Promise.all(promises);
       state.allPayments = Array.isArray(results[0]) ? results[0] : [];
       state.allBonusProjects = Array.isArray(results[1]) ? results[1] : [];
