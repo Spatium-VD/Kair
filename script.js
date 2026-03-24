@@ -26,11 +26,14 @@
     return n.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   }
 
-  /** Рентабельность: число → строка с одним знаком после запятой и символом % */
+  /**
+   * Рентабельность: Apps Script возвращает процентные ячейки как дроби (0.152 = 15.2%).
+   * Умножаем на 100 перед форматированием.
+   */
   function formatPercent(value) {
     var n = Number(value);
     if (!Number.isFinite(n)) return '—';
-    return n.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+    return (n * 100).toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
   }
 
   /** Премия в строке: «+» и модуль, без цветовой подсветки. */
