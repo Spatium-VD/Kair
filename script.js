@@ -26,6 +26,13 @@
     return n.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   }
 
+  /** Рентабельность: число → строка с одним знаком после запятой и символом % */
+  function formatPercent(value) {
+    var n = Number(value);
+    if (!Number.isFinite(n)) return '—';
+    return n.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+  }
+
   /** Премия в строке: «+» и модуль, без цветовой подсветки. */
   function formatBonusPlusAbs(value) {
     var v = Number(value);
@@ -620,16 +627,31 @@
         '<th>Проект</th><th>Город</th>' +
         '<th class="text-end">ФОТ проекта</th>' +
         '<th class="text-end">Дивиденды</th>' +
+        '<th class="text-end">Рент.</th>' +
         '<th class="text-end" title="По модулю с плюсом (как в таблице премий).">Премия (+)</th>' +
         '</tr></thead><tbody>';
       for (var j = 0; j < group.rows.length; j++) {
         var row = group.rows[j];
         periodTotal += Number(row.bonusManager) || 0;
+        var rentVal = (row.rentability !== null && row.rentability !== undefined) ? row.rentability : null;
+        var rentHtml;
+        if (rentVal === null) {
+          rentHtml = '<span class="text-muted">—</span>';
+        } else {
+          var rentFormatted = formatPercent(rentVal);
+          if (rentVal < 0) {
+            rentHtml = '<span class="rent-negative" tabindex="0" title="Условие премии не выполнено: рентабельность отрицательная">' +
+              rentFormatted + ' ⚠</span>';
+          } else {
+            rentHtml = '<span class="rent-positive">' + rentFormatted + '</span>';
+          }
+        }
         html += '<tr>' +
           '<td>' + escapeHtml(row.project) + '</td>' +
           '<td>' + escapeHtml(row.city || '') + '</td>' +
           '<td class="text-end">' + formatMoney(row.fot) + '</td>' +
           '<td class="text-end">' + formatMoney(row.dividends) + '</td>' +
+          '<td class="text-end">' + rentHtml + '</td>' +
           '<td class="text-end">' + formatBonusPlusAbs(row.bonusManager) + '</td>' +
           '</tr>';
       }

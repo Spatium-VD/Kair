@@ -458,6 +458,7 @@ function getBonusProjects() {
         city: values[r][5] ? String(values[r][5]).trim() : '',
         fot: parseFloatSafe(values[r][6]) || 0,
         dividends: parseFloatSafe(values[r][7]) || 0,
+        rentability: parseFloatSafe(values[r][15]),
         bonusManager: parseFloatSafe(values[r][17]) || 0
       });
     }

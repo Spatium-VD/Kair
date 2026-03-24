@@ -460,6 +460,19 @@ tbody tr:hover {
   margin-top: 0.5rem;
 }
 
+.rent-positive {
+  color: var(--color-success, #1c7a4a);
+  font-weight: 500;
+}
+
+.rent-negative {
+  color: var(--color-danger, #b91c1c);
+  font-weight: 600;
+  cursor: help;
+  border-bottom: 1px dashed currentColor;
+  white-space: nowrap;
+}
+
 .text-success {
   color: var(--color-success) !important;
 }
