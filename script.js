@@ -338,14 +338,8 @@
     // Первичный фильтр: совпадение полного ФИО (fio_fot) с полем manager в таблице Премии
     var userSig = nameToSignature(user.fioFot);
 
-    // Вторичный фильтр: projects в managers — белый список проектов (если пусто — показываем все)
-    var hasProjectFilter = user.projects && user.projects.length > 0;
-    var projectSet = {};
-    if (hasProjectFilter) {
-      for (var i = 0; i < user.projects.length; i++) {
-        projectSet[user.projects[i].toLowerCase()] = true;
-      }
-    }
+    // projects в managers больше не используется как фильтр:
+    // состав проектов определяется тем, что стоит напротив ФИО менеджера в таблице «Премия».
 
     var cityTokens = [];
     if (user.cities && user.cities.length) {
@@ -364,9 +358,6 @@
       // Первичный: ФИО менеджера должно совпадать
       var rSig = nameToSignature(r.manager || '');
       if (!rSig || rSig !== userSig) return false;
-
-      // Вторичный: фильтр по проектам (если задан в managers)
-      if (hasProjectFilter && projectSet[r.project.toLowerCase()] !== true) return false;
 
       // Фильтр по городу
       if (allGlob) return true;
